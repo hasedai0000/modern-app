@@ -267,7 +267,7 @@ CI 設定ファイル: `.github/workflows/ci.yml`
 
 ```bash
 # ローカルで同じテストを実行する場合
-cd src
+cd backend/src
 composer test      # PHPUnit テストを実行
 ```
 
@@ -294,27 +294,28 @@ modern-app/
 │   │   └── php.ini         # PHP設定
 │   └── mysql/
 │       └── my.cnf          # MySQL設定
-├── src/                    # Laravelアプリケーション
-│   ├── app/                # アプリケーションロジック
-│   │   ├── Application/    # アプリケーション層
-│   │   │   └── Services/   # ユースケース実装
-│   │   ├── Domain/         # ドメイン層
-│   │   │   └── */         # ドメイン名
-│   │   │       ├── Entities/      # エンティティ
-│   │   │       ├── ValueObjects/   # 値オブジェクト
-│   │   │       ├── Repositories/   # データ取得用インターフェース
-│   │   │       └── Services/       # ドメイン固有のロジック
-│   │   ├── Http/           # プレゼンテーション層
-│   │   │   ├── Controllers/        # HTTPリクエスト処理
-│   │   │   └── Requests/           # 入力検証
-│   │   ├── Infrastructure/ # インフラストラクチャ層
-│   │   │   └── Repositories/       # データアクセス実装
-│   │   └── Models/         # Eloquentモデル
-│   │       └── Repositories/       # データアクセス実装
-│   ├── database/           # マイグレーション・シーダー
-│   ├── public/             # 公開ファイル
-│   ├── resources/          # ビュー・CSS・JS
-│   └── routes/             # ルート定義
+├── backend/                 # バックエンド
+│   └── src/                # Laravelアプリケーション
+│       ├── app/            # アプリケーションロジック
+│       │   ├── Application/    # アプリケーション層
+│       │   │   └── Services/   # ユースケース実装
+│       │   ├── Domain/         # ドメイン層
+│       │   │   └── */         # ドメイン名
+│       │   │       ├── Entities/      # エンティティ
+│       │   │       ├── ValueObjects/   # 値オブジェクト
+│       │   │       ├── Repositories/   # データ取得用インターフェース
+│       │   │       └── Services/       # ドメイン固有のロジック
+│       │   ├── Http/           # プレゼンテーション層
+│       │   │   ├── Controllers/        # HTTPリクエスト処理
+│       │   │   └── Requests/           # 入力検証
+│       │   ├── Infrastructure/ # インフラストラクチャ層
+│       │   │   └── Repositories/       # データアクセス実装
+│       │   └── Models/         # Eloquentモデル
+│       │       └── Repositories/       # データアクセス実装
+│       ├── database/           # マイグレーション・シーダー
+│       ├── public/             # 公開ファイル
+│       ├── resources/          # ビュー・CSS・JS
+│       └── routes/             # ルート定義
 ├── .cursor/                # プロジェクト仕様・設計書
 │   ├── .cursorrules        # コーディングルール
 │   ├── twitter-sns-rules.mdc      # プロジェクト仕様
