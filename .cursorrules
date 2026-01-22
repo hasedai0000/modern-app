@@ -72,3 +72,15 @@
     - **`Repositories`**: データアクセス実装
   - **`Model`**: Eloquent モデル（シンプルな DB マッピング）
     - **`Repositories`**: データアクセス実装
+
+#### フロントエンド（Next.js）
+
+- **ルーティング**: App Router を使用
+  - **ディレクトリ構造**: `src/app/` 配下にページとレイアウトを配置
+  - **ページファイル**: `page.tsx` を使用
+  - **レイアウトファイル**: `layout.tsx` を使用
+  - **動的ルート**: `[id]` や `[slug]` などのフォルダ名で実装
+  - **例**: 
+    - `src/app/page.tsx` - ホームページ
+    - `src/app/login/page.tsx` - ログインページ
+    - `src/app/posts/[id]/comments/page.tsx` - コメントページ
