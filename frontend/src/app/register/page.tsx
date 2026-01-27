@@ -1,0 +1,201 @@
+"use client";
+
+import { useState } from "react";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function RegisterPage() {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    // バリデーション
+    if (username.length === 0) {
+      setError("ユーザーネームを入力してください。");
+      setLoading(false);
+      return;
+    }
+
+    if (username.length > 20) {
+      setError("ユーザーネームは20文字以内で入力してください。");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("パスワードは6文字以上で入力してください。");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Firebase設定の確認
+      if (!auth) {
+        const errorMessage =
+          "Firebaseが正しく設定されていません。環境変数を確認してください。\n" +
+          "ブラウザのコンソールで詳細なエラー情報を確認してください。";
+        setError(errorMessage);
+        setLoading(false);
+        console.error(
+          "Firebase auth is not initialized. Check environment variables."
+        );
+        return;
+      }
+
+      // Firebase Authenticationでユーザー作成
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      // プロフィールにユーザーネームを設定
+      await updateProfile(userCredential.user, {
+        displayName: username,
+      });
+
+      // LaravelのAPIにユーザー情報を送信
+      const token = await userCredential.user.getIdToken();
+      await api.register(
+        {
+          firebase_uid: userCredential.user.uid,
+          user_name: username,
+          email: email,
+        },
+        token
+      );
+
+      router.push("/");
+    } catch (err: any) {
+      let errorMessage = "新規登録に失敗しました。";
+
+      // Firebase認証エラー
+      if (err.code === "auth/email-already-in-use") {
+        errorMessage = "このメールアドレスは既に使用されています。";
+      } else if (err.code === "auth/invalid-email") {
+        errorMessage = "有効なメールアドレスを入力してください。";
+      } else if (err.code === "auth/weak-password") {
+        errorMessage =
+          "パスワードが弱すぎます。より強力なパスワードを入力してください。";
+      } else if (err.code === "auth/configuration-not-found") {
+        errorMessage =
+          "Firebase設定が見つかりません。環境変数を確認してください。";
+      } else if (err.message) {
+        // APIからのエラーメッセージまたはその他のエラー
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+      console.error("Registration error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#2C3E50] flex flex-col">
+      {/* ヘッダー */}
+      <header className="flex justify-between items-center p-6">
+        <h1 className="text-white text-2xl font-bold">SHARE</h1>
+        <nav className="flex gap-4">
+          <Link href="/register" className="text-white hover:underline">
+            新規登録
+          </Link>
+          <Link href="/login" className="text-white hover:underline">
+            ログイン
+          </Link>
+        </nav>
+      </header>
+
+      {/* メインコンテンツ */}
+      <main className="flex-1 flex items-center justify-center px-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+          <h2 className="text-2xl font-bold text-black mb-6">新規登録</h2>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                ユーザーネーム
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                maxLength={20}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="ユーザーネームを入力"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                メールアドレス
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="メールアドレスを入力"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                パスワード
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="パスワードを入力"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-md shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "登録中..." : "新規登録"}
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
+}
