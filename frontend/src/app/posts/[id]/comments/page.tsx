@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
-import { api, Post, Comment } from '@/lib/api';
+import { verifyUserAfterLogin } from '@/app/actions/authApi';
+import { getPost, getComments, createComment } from '@/app/actions/postApi';
+import { api } from '@/lib/api';
+import type { Post, Comment } from '@/types/post';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -22,24 +24,21 @@ export default function CommentsPage() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!auth) {
+      router.push('/login');
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
         router.push('/login');
         return;
       }
 
-      // ユーザー情報を取得してcurrentUserIdを設定
       try {
         const token = await user.getIdToken();
-        const response = await fetch('/api/user', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          const userData = await response.json();
-          setCurrentUserId(userData.data?.id || null);
-        }
+        const res = await verifyUserAfterLogin(token);
+        setCurrentUserId(res.data?.id ?? null);
       } catch (err) {
         console.error('User fetch error:', err);
       }
@@ -53,14 +52,17 @@ export default function CommentsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [postData, commentsData] = await Promise.all([
-        api.getPost(postId),
-        api.getComments(postId),
+      const [postRes, commentsRes] = await Promise.all([
+        getPost(postId),
+        getComments(postId),
       ]);
-      setPost(postData);
-      setComments(commentsData);
-    } catch (err: any) {
-      setError(err.message || 'データの読み込みに失敗しました');
+      setPost(postRes.data ?? null);
+      setComments(commentsRes.data ?? []);
+      setError(postRes.errorMessage || commentsRes.errorMessage || '');
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : 'データの読み込みに失敗しました'
+      );
       console.error('Load data error:', err);
     } finally {
       setLoading(false);
@@ -73,68 +75,58 @@ export default function CommentsPage() {
       setError('コメント内容は1文字以上120文字以内で入力してください。');
       return;
     }
+    if (!auth?.currentUser) return;
 
     setSubmitting(true);
     setError('');
 
     try {
-      await api.createComment(postId, content);
-      setContent('');
-      await loadData();
-    } catch (err: any) {
-      setError(err.message || 'コメントの作成に失敗しました');
+      const token = await auth.currentUser.getIdToken();
+      const res = await createComment(
+        postId,
+        { content: content.trim() },
+        token
+      );
+      if (res.data) {
+        setContent('');
+        await loadData();
+      } else {
+        setError(res.errorMessage || 'コメントの作成に失敗しました');
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : 'コメントの作成に失敗しました'
+      );
     } finally {
       setSubmitting(false);
-    }
+      }
   };
 
-  const handleDelete = async (postId: number) => {
-    if (!confirm('この投稿を削除しますか？')) {
-      return;
-    }
+  const handleDelete = (_targetPostId: number) => {};
 
-    try {
-      await api.deletePost(postId);
-      router.push('/');
-    } catch (err: any) {
-      setError(err.message || '投稿の削除に失敗しました');
-    }
-  };
+  const handleLike = (_targetPostId: number) => {};
 
-  const handleLike = async (postId: number) => {
-    try {
-      await api.toggleLike(postId);
-      await loadData();
-    } catch (err: any) {
-      setError('いいねの処理に失敗しました');
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push('/login');
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-  };
+  const handleLogout = () => {};
 
   const handleShareSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const shareContent = formData.get('content') as string;
+    const shareContent = (formData.get('content') as string)?.trim();
 
-    if (!shareContent.trim() || shareContent.length > 120) {
+    if (!shareContent || shareContent.length > 120) {
       setError('投稿内容は1文字以上120文字以内で入力してください。');
       return;
     }
+    if (!auth?.currentUser) return;
 
     try {
       await api.createPost(shareContent);
       e.currentTarget.reset();
       router.push('/');
-    } catch (err: any) {
-      setError(err.message || '投稿の作成に失敗しました');
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : '投稿の作成に失敗しました'
+      );
     }
   };
 

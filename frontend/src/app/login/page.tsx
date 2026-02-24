@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { verifyUserAfterLogin } from '@/app/actions/authApi';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,7 +12,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const router = useRouter();
+
+  // 既にログイン済みの場合はホームにリダイレクト
+  useEffect(() => {
+    if (!auth) {
+      setAuthChecking(false);
+      return;
+    }
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        router.replace('/');
+        return;
+      }
+      setAuthChecking(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -19,10 +39,66 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/');
-    } catch (err: any) {
-      setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
+      // Firebase設定の確認
+      if (!auth) {
+        setError(
+          'Firebaseが正しく設定されていません。環境変数を確認してください。'
+        );
+        setLoading(false);
+        return;
+      }
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const token = await userCredential.user.getIdToken();
+      const res = await verifyUserAfterLogin(token);
+
+      if (res.data) {
+        router.push('/');
+      } else {
+        setError(
+          res.errorMessage ||
+            'ログインに失敗しました。メールアドレスとパスワードを確認してください。'
+        );
+      }
+    } catch (err: unknown) {
+      let errorMessage =
+        'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+
+      if (err && typeof err === 'object' && 'code' in err) {
+        const code = (err as { code: string }).code;
+        switch (code) {
+          case 'auth/invalid-credential':
+          case 'auth/wrong-password':
+          case 'auth/user-not-found':
+            errorMessage =
+              'メールアドレスまたはパスワードが正しくありません。';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = '有効なメールアドレスを入力してください。';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage =
+              'ログイン試行が多すぎます。しばらくしてから再度お試しください。';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'このアカウントは無効化されています。';
+            break;
+          case 'auth/configuration-not-found':
+            errorMessage =
+              'Firebase設定が見つかりません。環境変数を確認してください。';
+            break;
+          default:
+            if ('message' in err && typeof (err as { message: string }).message === 'string') {
+              errorMessage = (err as { message: string }).message;
+            }
+        }
+      }
+
+      setError(errorMessage);
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -47,6 +123,12 @@ export default function LoginPage() {
       {/* メインコンテンツ */}
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+          {authChecking ? (
+            <div className="text-center py-8 text-gray-600">
+              確認中...
+            </div>
+          ) : (
+            <>
           <h2 className="text-2xl font-bold text-black mb-6">ログイン</h2>
 
           {error && (
@@ -94,6 +176,15 @@ export default function LoginPage() {
               {loading ? 'ログイン中...' : 'ログイン'}
             </button>
           </form>
+
+          <p className="mt-6 text-center text-sm text-gray-600">
+            アカウントをお持ちでない方は
+            <Link href="/register" className="text-purple-600 hover:underline font-medium ml-1">
+              新規登録
+            </Link>
+          </p>
+            </>
+          )}
         </div>
       </main>
     </div>

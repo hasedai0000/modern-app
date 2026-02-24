@@ -177,10 +177,57 @@ docker compose up -d
 
 ### 設定手順
 
-1. Firebase プロジェクトを作成
-2. Authentication を有効化（メール/パスワード認証）
-3. Firebase 設定情報を Next.js アプリに設定
-4. Laravel 側で Firebase トークンを検証するミドルウェアを実装
+1. **Firebase プロジェクトの作成**
+
+   - [Firebase Console](https://console.firebase.google.com/) にアクセス
+   - 「プロジェクトを追加」をクリック
+   - プロジェクト名を入力して作成
+
+2. **Authentication の有効化（重要）**
+
+   - Firebase Console で「Authentication」を選択
+   - 「始める」をクリック（初回の場合）
+   - 「Sign-in method」タブを開く
+   - 「メール/パスワード」を選択
+   - 「有効にする」をクリック
+   - 「保存」をクリック
+   - ⚠️ **この手順を忘れると `auth/configuration-not-found` エラーが発生します**
+
+3. **Firebase 設定情報の取得**
+
+   - Firebase Console で「プロジェクトの設定」（歯車アイコン）をクリック
+   - 「アプリを追加」→「ウェブ」（</>）を選択
+   - アプリ名を入力して登録
+   - 表示された設定情報をコピー
+
+4. **Next.js アプリに環境変数を設定**
+   - `frontend/.env.local` ファイルを作成
+   - 以下の環境変数を設定：
+
+```bash
+# frontend/.env.local
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key-here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+
+# API ベース URL（デフォルトは /api）
+NEXT_PUBLIC_API_BASE_URL=/api
+```
+
+5. **Next.js 開発サーバーの再起動**
+   - 環境変数を変更した場合は、開発サーバーを再起動してください
+
+```bash
+cd frontend
+npm run dev
+```
+
+6. **Laravel 側の Firebase トークン検証**
+   - Laravel 側では `firebase.auth` ミドルウェアが実装済み
+   - Firebase トークンが自動的に検証されます
 
 ## 開発時の操作
 
@@ -387,3 +434,26 @@ docker compose up --build
 docker compose exec php php artisan tinker
 DB::connection()->getPdo();
 ```
+
+### Firebase Authentication エラー
+
+#### `auth/configuration-not-found` エラーが発生する場合
+
+このエラーは、Firebase Console で Authentication（メール/パスワード）が有効化されていない場合に発生します。
+
+**対処法：**
+
+1. [Firebase Console](https://console.firebase.google.com/) にアクセス
+2. プロジェクトを選択
+3. 左メニューから「Authentication」を選択
+4. 「始める」をクリック（初回の場合）
+5. 「Sign-in method」タブを開く
+6. 「メール/パスワード」を選択
+7. 「有効にする」をクリック
+8. 「保存」をクリック
+9. ブラウザをリロードして再度試してください
+
+**確認方法：**
+
+- Firebase Console の「Authentication」→「Sign-in method」で「メール/パスワード」が「有効」になっていることを確認
+- ブラウザのコンソールで「✅ Firebase 初期化成功」と「✅ Firebase Authentication 初期化成功」が表示されることを確認

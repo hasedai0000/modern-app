@@ -45,7 +45,7 @@ class FirebaseAuthenticate
         if ($user === null) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized',
+                'message' => 'ユーザーが登録されていません。新規登録を行ってください。',
             ], 401);
         }
 
@@ -182,7 +182,7 @@ class FirebaseAuthenticate
 
         $algo = $this->asn1Sequence(
             $this->asn1ObjectIdentifier("\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01") . // 1.2.840.113549.1.1.1 rsaEncryption
-            $this->asn1Null()
+                $this->asn1Null()
         );
 
         $bit_string = $this->asn1BitString($rsa_public_key);
@@ -237,5 +237,3 @@ class FirebaseAuthenticate
         return "\x06" . $this->asn1Length(strlen($oid_bytes)) . $oid_bytes;
     }
 }
-
-

@@ -34,7 +34,7 @@ class PostController extends Controller
         'content' => $post->content,
         'likes_count' => $post->likes_count,
         'comments_count' => $post->comments_count,
-        'created_at' => $post->created_at,
+        'created_at' => $post->created_at ? $post->created_at->toIso8601String() : null,
       ];
     });
 
@@ -81,7 +81,7 @@ class PostController extends Controller
       'content' => $post->content,
       'likes_count' => $post->likes_count,
       'comments_count' => $post->comments_count,
-      'created_at' => $post->created_at,
+      'created_at' => $post->created_at ? $post->created_at->toIso8601String() : null,
     ], 201);
   }
 
@@ -108,7 +108,7 @@ class PostController extends Controller
       'content' => $post->content,
       'likes_count' => $post->likes_count,
       'comments_count' => $post->comments_count,
-      'created_at' => $post->created_at,
+      'created_at' => $post->created_at ? $post->created_at->toIso8601String() : null,
     ]);
   }
 

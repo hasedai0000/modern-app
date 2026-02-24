@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { api } from "@/lib/api";
+import { registerUser } from "@/app/actions/authApi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -39,6 +39,14 @@ export default function RegisterPage() {
       return;
     }
 
+    // メール形式の簡易バリデーション
+    const email_regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email_regex.test(email)) {
+      setError("有効なメールアドレスを入力してください。");
+      setLoading(false);
+      return;
+    }
+
     try {
       // Firebase設定の確認
       if (!auth) {
@@ -65,9 +73,9 @@ export default function RegisterPage() {
         displayName: username,
       });
 
-      // LaravelのAPIにユーザー情報を送信
+      // LaravelのAPIにユーザー情報を送信（registerUser Server Action を使用）
       const token = await userCredential.user.getIdToken();
-      await api.register(
+      const res = await registerUser(
         {
           firebase_uid: userCredential.user.uid,
           user_name: username,
@@ -76,7 +84,18 @@ export default function RegisterPage() {
         token
       );
 
-      router.push("/");
+      if (res.data) {
+        router.push("/");
+        return;
+      }
+
+      // APIエラー時はFirebaseユーザーを削除して再試行を可能にする
+      try {
+        await userCredential.user.delete();
+      } catch (delete_err) {
+        console.error("Firebase user cleanup failed:", delete_err);
+      }
+      setError(res.errorMessage || "ユーザー登録に失敗しました。");
     } catch (err: any) {
       let errorMessage = "新規登録に失敗しました。";
 

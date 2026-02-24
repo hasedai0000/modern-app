@@ -1,45 +1,51 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
-import { api, Post } from '@/lib/api';
-import Image from 'next/image';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { verifyUserAfterLogin } from "@/app/actions/authApi";
+import {
+  getPosts,
+  deletePost,
+  toggleLike,
+} from "@/app/actions/postApi";
+import { api } from "@/lib/api";
+import type { Post } from "@/types/post";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    if (!auth) {
+      router.push("/login");
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
-      
+
       // ユーザー情報を取得してcurrentUserIdを設定
       try {
         const token = await user.getIdToken();
-        const response = await fetch('/api/user', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          const userData = await response.json();
-          setCurrentUserId(userData.data?.id || null);
-        }
+        const res = await verifyUserAfterLogin(token);
+        setCurrentUserId(res.data?.id ?? null);
       } catch (err) {
-        console.error('User fetch error:', err);
+        console.error("User fetch error:", err);
       }
-      
+
       loadPosts();
     });
 
@@ -49,11 +55,17 @@ export default function Home() {
   const loadPosts = async () => {
     try {
       setLoading(true);
-      const response = await api.getPosts(1);
-      setPosts(response.data || []);
-    } catch (err: any) {
-      setError(err.message || '投稿の読み込みに失敗しました');
-      console.error('Load posts error:', err);
+      const res = await getPosts(1);
+      if (res.data) {
+        setPosts(res.data);
+      } else {
+        setError(res.errorMessage || "投稿の読み込みに失敗しました");
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "投稿の読み込みに失敗しました"
+      );
+      console.error("Load posts error:", err);
     } finally {
       setLoading(false);
     }
@@ -61,53 +73,104 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!content.trim() || content.length > 120) {
-      setError('投稿内容は1文字以上120文字以内で入力してください。');
+
+    // フロントエンドでのバリデーション
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      setError("投稿内容を入力してください。");
+      return;
+    }
+
+    if (trimmedContent.length > 120) {
+      setError("投稿内容は120文字以内で入力してください。");
       return;
     }
 
     setSubmitting(true);
-    setError('');
+    setError("");
+    setSuccessMessage("");
 
     try {
-      const newPost = await api.createPost(content);
-      setContent('');
+      if (!auth?.currentUser) {
+        setError("認証が必要です。再度ログインしてください。");
+        router.push("/login");
+        return;
+      }
+
+      await api.createPost(trimmedContent);
+      setContent("");
+      setSuccessMessage("投稿が完了しました！");
       await loadPosts();
-    } catch (err: any) {
-      setError(err.message || '投稿の作成に失敗しました');
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err: unknown) {
+      console.error("投稿エラー:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "投稿の作成に失敗しました";
+      setError(errorMessage);
+      if (
+        errorMessage.includes("認証") ||
+        errorMessage.includes("Unauthorized") ||
+        errorMessage.includes("ユーザーが登録されていません")
+      ) {
+        if (errorMessage.includes("ユーザーが登録されていません")) {
+          setTimeout(() => router.push("/register"), 2000);
+        } else {
+          setTimeout(() => router.push("/login"), 2000);
+        }
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (postId: number) => {
-    if (!confirm('この投稿を削除しますか？')) {
+    if (!confirm("この投稿を削除しますか？")) {
       return;
     }
+    if (!auth?.currentUser) return;
 
     try {
-      await api.deletePost(postId);
-      await loadPosts();
-    } catch (err: any) {
-      setError(err.message || '投稿の削除に失敗しました');
+      const token = await auth.currentUser.getIdToken();
+      const res = await deletePost(postId, token);
+      if (res.data !== undefined) {
+        await loadPosts();
+      } else {
+        setError(res.errorMessage || "投稿の削除に失敗しました");
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "投稿の削除に失敗しました"
+      );
     }
   };
 
   const handleLike = async (postId: number) => {
+    if (!auth?.currentUser) return;
+
     try {
-      await api.toggleLike(postId);
-      await loadPosts();
-    } catch (err: any) {
-      setError('いいねの処理に失敗しました');
+      const token = await auth.currentUser.getIdToken();
+      const res = await toggleLike(postId, token);
+      if (res.data) {
+        await loadPosts();
+      } else {
+        setError(res.errorMessage || "いいねの処理に失敗しました");
+      }
+    } catch (err: unknown) {
+      setError("いいねの処理に失敗しました");
     }
   };
 
   const handleLogout = async () => {
+    if (!auth) {
+      router.push("/login");
+      return;
+    }
+
     try {
       await signOut(auth);
-      router.push('/login');
+      router.push("/login");
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error("Logout error:", err);
     }
   };
 
@@ -116,9 +179,12 @@ export default function Home() {
       {/* 左サイドバー */}
       <aside className="w-64 bg-[#34495E] p-6 flex flex-col">
         <h1 className="text-white text-2xl font-bold mb-8">SHARE</h1>
-        
+
         <nav className="mb-8">
-          <Link href="/" className="flex items-center gap-3 text-white mb-4 hover:opacity-80">
+          <Link
+            href="/"
+            className="flex items-center gap-3 text-white mb-4 hover:opacity-80"
+          >
             <Image src="/assets/home.png" alt="ホーム" width={24} height={24} />
             <span>ホーム</span>
           </Link>
@@ -126,7 +192,12 @@ export default function Home() {
             onClick={handleLogout}
             className="flex items-center gap-3 text-white hover:opacity-80"
           >
-            <Image src="/assets/logout.png" alt="ログアウト" width={24} height={24} />
+            <Image
+              src="/assets/logout.png"
+              alt="ログアウト"
+              width={24}
+              height={24}
+            />
             <span>ログアウト</span>
           </button>
         </nav>
@@ -136,18 +207,25 @@ export default function Home() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value);
+                // エラーメッセージをクリア
+                if (error) setError("");
+              }}
               maxLength={120}
               placeholder="何をシェアしますか？"
               className="w-full px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               rows={4}
             />
+            <div className="text-right text-sm text-gray-400">
+              {content.length}/120
+            </div>
             <button
               type="submit"
               disabled={submitting || !content.trim()}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-md shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? '投稿中...' : 'シェアする'}
+              {submitting ? "投稿中..." : "シェアする"}
             </button>
           </form>
         </div>
@@ -164,6 +242,12 @@ export default function Home() {
           </div>
         )}
 
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+            {successMessage}
+          </div>
+        )}
+
         {loading ? (
           <div className="text-white">読み込み中...</div>
         ) : posts.length === 0 ? (
@@ -177,12 +261,19 @@ export default function Home() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-white font-semibold">{post.user_name}</span>
+                    <span className="text-white font-semibold">
+                      {post.user_name}
+                    </span>
                     <button
                       onClick={() => handleLike(post.id)}
                       className="flex items-center gap-1 text-pink-500 hover:opacity-80"
                     >
-                      <Image src="/assets/heart.png" alt="いいね" width={20} height={20} />
+                      <Image
+                        src="/assets/heart.png"
+                        alt="いいね"
+                        width={20}
+                        height={20}
+                      />
                       <span className="text-white">{post.likes_count}</span>
                     </button>
                     {currentUserId === post.user_id && (
@@ -190,14 +281,24 @@ export default function Home() {
                         onClick={() => handleDelete(post.id)}
                         className="text-white hover:opacity-80"
                       >
-                        <Image src="/assets/cross.png" alt="削除" width={20} height={20} />
+                        <Image
+                          src="/assets/cross.png"
+                          alt="削除"
+                          width={20}
+                          height={20}
+                        />
                       </button>
                     )}
                     <Link
                       href={`/posts/${post.id}/comments`}
                       className="text-white hover:opacity-80"
                     >
-                      <Image src="/assets/detail.png" alt="詳細" width={20} height={20} />
+                      <Image
+                        src="/assets/detail.png"
+                        alt="詳細"
+                        width={20}
+                        height={20}
+                      />
                     </Link>
                   </div>
                 </div>
