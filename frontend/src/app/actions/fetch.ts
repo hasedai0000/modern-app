@@ -26,8 +26,7 @@ type GetFetchArgs = {
 
 export const getFetch = async ({ path, tagName, cacheType }: GetFetchArgs) => {
   const header = await headers();
-  const base_url = await getBaseUrl();
-  return fetch(`${base_url}/${path}`, {
+  return fetch(`${BASE_URL}/${path}`, {
     headers: new Headers(header),
     next: { tags: [tagName] },
     cache: cacheType,
@@ -47,8 +46,7 @@ export const postFetch = async ({ path, body, token }: PostFetchArgs) => {
   if (token) {
     request_headers.set("Authorization", `Bearer ${token}`);
   }
-  const base_url = await getBaseUrl();
-  return fetch(`${base_url}/${path}`, {
+  return fetch(`${BASE_URL}/${path}`, {
     method: "POST",
     headers: request_headers,
     body: JSON.stringify(body),
@@ -61,8 +59,7 @@ type PutFetchArgs = {
 };
 
 export const putFetch = async ({ path, body }: PutFetchArgs) => {
-  const base_url = await getBaseUrl();
-  return fetch(`${base_url}/${path}`, {
+  return fetch(`${BASE_URL}/${path}`, {
     method: "PUT",
     headers: new Headers({
       "Content-Type": "application/json",
@@ -76,8 +73,7 @@ type GetFetchForPathArgs = {
 };
 
 export const getFetchForPath = async ({ path }: GetFetchForPathArgs) => {
-  const base_url = await getBaseUrl();
-  return fetch(`${base_url}/${path}`, {
+  return fetch(`${BASE_URL}/${path}`, {
     method: "GET",
     headers: new Headers({
       "Content-Type": "application/json",
@@ -94,8 +90,7 @@ export const getFetchWithAuth = async ({
   path,
   token,
 }: GetFetchWithAuthArgs) => {
-  const base_url = await getBaseUrl();
-  return fetch(`${base_url}/${path}`, {
+  return fetch(`${BASE_URL}/${path}`, {
     method: "GET",
     headers: new Headers({
       "Content-Type": "application/json",
@@ -109,8 +104,7 @@ type DeleteFetchArgs = {
 };
 
 export const deleteFetch = async ({ path }: DeleteFetchArgs) => {
-  const base_url = await getBaseUrl();
-  return fetch(`${base_url}/${path}`, {
+  return fetch(`${BASE_URL}/${path}`, {
     method: "DELETE",
     headers: new Headers({
       "Content-Type": "application/json",
@@ -127,8 +121,7 @@ export const deleteFetchWithAuth = async ({
   path,
   token,
 }: DeleteFetchWithAuthArgs) => {
-  const base_url = await getBaseUrl();
-  return fetch(`${base_url}/${path}`, {
+  return fetch(`${BASE_URL}/${path}`, {
     method: "DELETE",
     headers: new Headers({
       "Content-Type": "application/json",

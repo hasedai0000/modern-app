@@ -7,10 +7,10 @@ import { useRouter } from "next/navigation";
 import { verifyUserAfterLogin } from "@/app/actions/authApi";
 import {
   getPosts,
+  createPost,
   deletePost,
   toggleLike,
 } from "@/app/actions/postApi";
-import { api } from "@/lib/api";
 import type { Post } from "@/types/post";
 import Image from "next/image";
 import Link from "next/link";
@@ -97,27 +97,19 @@ export default function Home() {
         return;
       }
 
-      await api.createPost(trimmedContent);
-      setContent("");
-      setSuccessMessage("投稿が完了しました！");
-      await loadPosts();
-      setTimeout(() => setSuccessMessage(""), 3000);
+      const token = await auth.currentUser.getIdToken();
+      const res = await createPost({ content: trimmedContent }, token);
+      if (res.data) {
+        setContent("");
+        setSuccessMessage("投稿が完了しました！");
+        await loadPosts();
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setError(res.errorMessage || "投稿の作成に失敗しました");
+      }
     } catch (err: unknown) {
       console.error("投稿エラー:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "投稿の作成に失敗しました";
-      setError(errorMessage);
-      if (
-        errorMessage.includes("認証") ||
-        errorMessage.includes("Unauthorized") ||
-        errorMessage.includes("ユーザーが登録されていません")
-      ) {
-        if (errorMessage.includes("ユーザーが登録されていません")) {
-          setTimeout(() => router.push("/register"), 2000);
-        } else {
-          setTimeout(() => router.push("/login"), 2000);
-        }
-      }
+      setError(err instanceof Error ? err.message : "投稿の作成に失敗しました");
     } finally {
       setSubmitting(false);
     }
@@ -178,7 +170,9 @@ export default function Home() {
     <div className="min-h-screen bg-[#2C3E50] flex">
       {/* 左サイドバー */}
       <aside className="w-64 bg-[#34495E] p-6 flex flex-col">
-        <h1 className="text-white text-2xl font-bold mb-8">SHARE</h1>
+        <div className="mb-8">
+          <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
+        </div>
 
         <nav className="mb-8">
           <Link
@@ -203,7 +197,10 @@ export default function Home() {
         </nav>
 
         <div className="mt-auto">
-          <h2 className="text-white text-lg font-semibold mb-4">シェア</h2>
+          <h2 className="flex items-center gap-2 text-white text-lg font-semibold mb-4">
+            <Image src="/assets/feather.png" alt="シェア" width={20} height={20} />
+            シェア
+          </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <textarea
               value={content}

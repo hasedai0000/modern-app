@@ -6,6 +6,7 @@ import { auth } from '@/lib/firebase';
 import { verifyUserAfterLogin } from '@/app/actions/authApi';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -109,7 +110,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#2C3E50] flex flex-col">
       {/* ヘッダー */}
       <header className="flex justify-between items-center p-6">
-        <h1 className="text-white text-2xl font-bold">SHARE</h1>
+        <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
         <nav className="flex gap-4">
           <Link href="/register" className="text-white hover:underline">
             新規登録

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { useRouter, useParams } from 'next/navigation';
 import { verifyUserAfterLogin } from '@/app/actions/authApi';
-import { getPost, getComments, createComment } from '@/app/actions/postApi';
-import { api } from '@/lib/api';
+import { getPost, getComments, createComment, createPost, deletePost, toggleLike } from '@/app/actions/postApi';
 import type { Post, Comment } from '@/types/post';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -58,7 +58,13 @@ export default function CommentsPage() {
       ]);
       setPost(postRes.data ?? null);
       setComments(commentsRes.data ?? []);
-      setError(postRes.errorMessage || commentsRes.errorMessage || '');
+      if (postRes.errorMessage) {
+        setError(postRes.errorMessage);
+      } else if (commentsRes.errorMessage) {
+        setError(commentsRes.errorMessage);
+      } else {
+        setError('');
+      }
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : 'データの読み込みに失敗しました'
@@ -99,14 +105,54 @@ export default function CommentsPage() {
       );
     } finally {
       setSubmitting(false);
-      }
+    }
   };
 
-  const handleDelete = (_targetPostId: number) => {};
+  const handleDelete = async (targetPostId: number) => {
+    if (!confirm('この投稿を削除しますか？')) return;
+    if (!auth?.currentUser) return;
 
-  const handleLike = (_targetPostId: number) => {};
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await deletePost(targetPostId, token);
+      if (res.data !== undefined) {
+        router.push('/');
+      } else {
+        setError(res.errorMessage || '投稿の削除に失敗しました');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '投稿の削除に失敗しました');
+    }
+  };
 
-  const handleLogout = () => {};
+  const handleLike = async (targetPostId: number) => {
+    if (!auth?.currentUser) return;
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await toggleLike(targetPostId, token);
+      if (res.data) {
+        await loadData();
+      } else {
+        setError(res.errorMessage || 'いいねの処理に失敗しました');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'いいねの処理に失敗しました');
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!auth) {
+      router.push('/login');
+      return;
+    }
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   const handleShareSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -120,9 +166,14 @@ export default function CommentsPage() {
     if (!auth?.currentUser) return;
 
     try {
-      await api.createPost(shareContent);
-      e.currentTarget.reset();
-      router.push('/');
+      const token = await auth.currentUser.getIdToken();
+      const res = await createPost({ content: shareContent }, token);
+      if (res.data) {
+        e.currentTarget.reset();
+        router.push('/');
+      } else {
+        setError(res.errorMessage || '投稿の作成に失敗しました');
+      }
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : '投稿の作成に失敗しました'
@@ -134,7 +185,9 @@ export default function CommentsPage() {
     <div className="min-h-screen bg-[#2C3E50] flex">
       {/* 左サイドバー */}
       <aside className="w-64 bg-[#34495E] p-6 flex flex-col">
-        <h1 className="text-white text-2xl font-bold mb-8">SHARE</h1>
+        <div className="mb-8">
+          <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
+        </div>
 
         <nav className="mb-8">
           <Link href="/" className="flex items-center gap-3 text-white mb-4 hover:opacity-80">
@@ -151,7 +204,10 @@ export default function CommentsPage() {
         </nav>
 
         <div className="mt-auto">
-          <h2 className="text-white text-lg font-semibold mb-4">シェア</h2>
+          <h2 className="flex items-center gap-2 text-white text-lg font-semibold mb-4">
+            <Image src="/assets/feather.png" alt="シェア" width={20} height={20} />
+            シェア
+          </h2>
           <form onSubmit={handleShareSubmit} className="space-y-4">
             <textarea
               name="content"

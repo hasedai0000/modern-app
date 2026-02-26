@@ -6,6 +6,7 @@ import { auth } from "@/lib/firebase";
 import { registerUser } from "@/app/actions/authApi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -96,22 +97,26 @@ export default function RegisterPage() {
         console.error("Firebase user cleanup failed:", delete_err);
       }
       setError(res.errorMessage || "ユーザー登録に失敗しました。");
-    } catch (err: any) {
+    } catch (err: unknown) {
       let errorMessage = "新規登録に失敗しました。";
 
       // Firebase認証エラー
-      if (err.code === "auth/email-already-in-use") {
-        errorMessage = "このメールアドレスは既に使用されています。";
-      } else if (err.code === "auth/invalid-email") {
-        errorMessage = "有効なメールアドレスを入力してください。";
-      } else if (err.code === "auth/weak-password") {
-        errorMessage =
-          "パスワードが弱すぎます。より強力なパスワードを入力してください。";
-      } else if (err.code === "auth/configuration-not-found") {
-        errorMessage =
-          "Firebase設定が見つかりません。環境変数を確認してください。";
-      } else if (err.message) {
-        // APIからのエラーメッセージまたはその他のエラー
+      if (err && typeof err === "object" && "code" in err) {
+        const code = (err as { code: string }).code;
+        if (code === "auth/email-already-in-use") {
+          errorMessage = "このメールアドレスは既に使用されています。";
+        } else if (code === "auth/invalid-email") {
+          errorMessage = "有効なメールアドレスを入力してください。";
+        } else if (code === "auth/weak-password") {
+          errorMessage =
+            "パスワードが弱すぎます。より強力なパスワードを入力してください。";
+        } else if (code === "auth/configuration-not-found") {
+          errorMessage =
+            "Firebase設定が見つかりません。環境変数を確認してください。";
+        } else if ("message" in err && typeof (err as { message: string }).message === "string") {
+          errorMessage = (err as { message: string }).message;
+        }
+      } else if (err instanceof Error) {
         errorMessage = err.message;
       }
 
@@ -126,7 +131,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#2C3E50] flex flex-col">
       {/* ヘッダー */}
       <header className="flex justify-between items-center p-6">
-        <h1 className="text-white text-2xl font-bold">SHARE</h1>
+        <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
         <nav className="flex gap-4">
           <Link href="/register" className="text-white hover:underline">
             新規登録
