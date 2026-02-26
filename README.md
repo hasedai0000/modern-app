@@ -7,24 +7,20 @@
 ### 主な機能
 
 - **ユーザー認証・管理**
-
   - Firebase Authentication による新規登録・ログイン・ログアウト
   - ユーザー情報の管理
 
 - **投稿機能**
-
   - 投稿の作成・削除
   - 投稿一覧の表示（ユーザー名、投稿内容、投稿日時、いいね数、コメント数）
   - 投稿詳細の表示
   - ページネーション対応
 
 - **いいね機能**
-
   - 投稿へのいいね追加/削除（トグル機能）
   - いいね数のリアルタイム表示
 
 - **コメント機能**
-
   - 投稿へのコメント追加
   - コメント一覧の表示（ユーザー名、コメント内容、コメント日時）
 
@@ -83,7 +79,7 @@ git clone git@github.com:hasedai0000/furima-app.git
 # HTTPSでクローンする場合
 git clone https://github.com/hasedai0000/furima-app.git
 
-cd furima-app
+cd modern-app
 ```
 
 ### 2. 環境の起動
@@ -178,13 +174,11 @@ docker compose up -d
 ### 設定手順
 
 1. **Firebase プロジェクトの作成**
-
    - [Firebase Console](https://console.firebase.google.com/) にアクセス
    - 「プロジェクトを追加」をクリック
    - プロジェクト名を入力して作成
 
 2. **Authentication の有効化（重要）**
-
    - Firebase Console で「Authentication」を選択
    - 「始める」をクリック（初回の場合）
    - 「Sign-in method」タブを開く
@@ -194,7 +188,6 @@ docker compose up -d
    - ⚠️ **この手順を忘れると `auth/configuration-not-found` エラーが発生します**
 
 3. **Firebase 設定情報の取得**
-
    - Firebase Console で「プロジェクトの設定」（歯車アイコン）をクリック
    - 「アプリを追加」→「ウェブ」（</>）を選択
    - アプリ名を入力して登録
