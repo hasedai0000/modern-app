@@ -11,18 +11,15 @@ import {
   deletePost,
   toggleLike,
 } from "@/app/actions/postApi";
-import { validatePost, hasValidationErrors } from "@/lib/validations/post";
 import type { Post } from "@/types/post";
+import Sidebar from "@/components/Sidebar";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [postError, setPostError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const router = useRouter();
@@ -73,45 +70,21 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const validation_errors = validatePost(content);
-    if (hasValidationErrors(validation_errors)) {
-      setPostError(validation_errors.content || '');
-      return;
+  const handleShareSubmit = async (shareContent: string) => {
+    if (!auth?.currentUser) {
+      router.push("/login");
+      throw new Error("認証が必要です。再度ログインしてください。");
     }
 
-    const trimmedContent = content.trim();
-
-    setSubmitting(true);
-    setPostError("");
-    setError("");
-    setSuccessMessage("");
-
-    try {
-      if (!auth?.currentUser) {
-        setError("認証が必要です。再度ログインしてください。");
-        router.push("/login");
-        return;
-      }
-
-      const token = await auth.currentUser.getIdToken();
-      const res = await createPost({ content: trimmedContent }, token);
-      if (res.data) {
-        setContent("");
-        setSuccessMessage("投稿が完了しました！");
-        await loadPosts();
-        setTimeout(() => setSuccessMessage(""), 3000);
-      } else {
-        setError(res.errorMessage || "投稿の作成に失敗しました");
-      }
-    } catch (err: unknown) {
-      console.error("投稿エラー:", err);
-      setError(err instanceof Error ? err.message : "投稿の作成に失敗しました");
-    } finally {
-      setSubmitting(false);
+    const token = await auth.currentUser.getIdToken();
+    const res = await createPost({ content: shareContent }, token);
+    if (!res.data) {
+      throw new Error(res.errorMessage || "投稿の作成に失敗しました");
     }
+
+    setSuccessMessage("投稿が完了しました！");
+    await loadPosts();
+    setTimeout(() => setSuccessMessage(""), 3000);
   };
 
   const handleDelete = async (postId: number) => {
@@ -166,72 +139,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#2C3E50] flex">
       {/* 左サイドバー */}
-      <aside className="w-1/5 p-3 py-6 flex flex-col">
-        <div className="mb-8">
-          <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
-        </div>
-
-        <nav className="mb-8">
-          <Link
-            href="/"
-            className="flex items-center gap-3 text-white mb-4 hover:opacity-80"
-          >
-            <Image src="/assets/home.png" alt="ホーム" width={24} height={24} />
-            <span>ホーム</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 text-white hover:opacity-80"
-          >
-            <Image
-              src="/assets/logout.png"
-              alt="ログアウト"
-              width={24}
-              height={24}
-            />
-            <span>ログアウト</span>
-          </button>
-        </nav>
-
-        <div>
-          <h2 className="flex items-center gap-2 text-white text-lg font-semibold mb-4">
-            <Image
-              src="/assets/feather.png"
-              alt="シェア"
-              width={20}
-              height={20}
-            />
-            シェア
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <textarea
-              value={content}
-              onChange={(e) => {
-                setContent(e.target.value);
-                if (postError) setPostError("");
-              }}
-              placeholder="何をシェアしますか？"
-              className="w-full px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-              rows={6}
-            />
-            <div className="flex justify-between items-center">
-              <span className={`text-xs ${content.length > 120 ? "text-red-400" : "text-gray-400"}`}>
-                {content.length}/120
-              </span>
-              <button
-                type="submit"
-                disabled={submitting || !content.trim()}
-                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-full border-4 border-t-gray-500 border-l-gray-500 border-r-gray-900 border-b-gray-900 shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? "投稿中..." : "シェアする"}
-              </button>
-            </div>
-            {postError && (
-              <p className="text-red-400 text-xs mt-1">{postError}</p>
-            )}
-          </form>
-        </div>
-      </aside>
+      <Sidebar onLogout={handleLogout} onShareSubmit={handleShareSubmit} />
 
       {/* トースト通知（固定表示） */}
       {(error || successMessage) && (

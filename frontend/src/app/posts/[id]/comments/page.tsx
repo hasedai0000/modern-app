@@ -14,10 +14,9 @@ import {
   toggleLike,
 } from "@/app/actions/postApi";
 import { validateComment, hasValidationErrors } from "@/lib/validations/comment";
-import { validatePost } from "@/lib/validations/post";
 import type { Post, Comment } from "@/types/post";
+import Sidebar from "@/components/Sidebar";
 import Image from "next/image";
-import Link from "next/link";
 
 export default function CommentsPage() {
   const params = useParams();
@@ -31,7 +30,6 @@ export default function CommentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [commentError, setCommentError] = useState("");
-  const [shareError, setShareError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -171,102 +169,21 @@ export default function CommentsPage() {
     }
   };
 
-  const handleShareSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const shareContent = (formData.get("content") as string) ?? "";
-
-    const validation_errors = validatePost(shareContent);
-    if (hasValidationErrors(validation_errors)) {
-      setShareError(validation_errors.content || '');
-      return;
-    }
-
+  const handleShareSubmit = async (shareContent: string) => {
     if (!auth?.currentUser) return;
 
-    setShareError("");
-
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const res = await createPost({ content: shareContent.trim() }, token);
-      if (res.data) {
-        form.reset();
-        router.push("/");
-      } else {
-        setShareError(res.errorMessage || "投稿の作成に失敗しました");
-      }
-    } catch (err: unknown) {
-      setShareError(err instanceof Error ? err.message : "投稿の作成に失敗しました");
+    const token = await auth.currentUser.getIdToken();
+    const res = await createPost({ content: shareContent }, token);
+    if (!res.data) {
+      throw new Error(res.errorMessage || "投稿の作成に失敗しました");
     }
+    router.push("/");
   };
 
   return (
     <div className="min-h-screen bg-[#2C3E50] flex">
       {/* 左サイドバー */}
-      <aside className="w-1/5 p-3 py-6 flex flex-col">
-        <div className="mb-8">
-          <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
-        </div>
-
-        <nav className="mb-8">
-          <Link
-            href="/"
-            className="flex items-center gap-3 text-white mb-4 hover:opacity-80"
-          >
-            <Image src="/assets/home.png" alt="ホーム" width={24} height={24} />
-            <span>ホーム</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 text-white hover:opacity-80"
-          >
-            <Image
-              src="/assets/logout.png"
-              alt="ログアウト"
-              width={24}
-              height={24}
-            />
-            <span>ログアウト</span>
-          </button>
-        </nav>
-
-        <div>
-          <h2 className="flex items-center gap-2 text-white text-lg font-semibold mb-4">
-            <Image
-              src="/assets/feather.png"
-              alt="シェア"
-              width={20}
-              height={20}
-            />
-            シェア
-          </h2>
-          <form
-            onSubmit={handleShareSubmit}
-            className="space-y-4"
-            suppressHydrationWarning
-          >
-            <textarea
-              name="content"
-              placeholder="何をシェアしますか？"
-              className="w-full px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-              rows={6}
-              onChange={() => { if (shareError) setShareError(""); }}
-            />
-            {shareError && (
-              <p className="text-red-400 text-xs">{shareError}</p>
-            )}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-full border-4 border-t-gray-500 border-l-gray-500 border-r-gray-900 border-b-gray-900 shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200"
-              >
-                シェアする
-              </button>
-            </div>
-          </form>
-        </div>
-      </aside>
+      <Sidebar onLogout={handleLogout} onShareSubmit={handleShareSubmit} />
 
       {/* メインコンテンツ */}
       <main className="flex-1 flex flex-col">
