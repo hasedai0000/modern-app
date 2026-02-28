@@ -9,8 +9,7 @@ import {
   hasValidationErrors,
 } from "@/lib/validations/register";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
+import AuthHeader from "@/components/AuthHeader";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -122,17 +121,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-[#1B2631] flex flex-col">
       {/* ヘッダー */}
-      <header className="flex justify-between items-center p-6">
-        <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
-        <nav className="flex gap-4">
-          <Link href="/register" className="text-white hover:underline">
-            新規登録
-          </Link>
-          <Link href="/login" className="text-white hover:underline">
-            ログイン
-          </Link>
-        </nav>
-      </header>
+      <AuthHeader />
 
       {/* メインコンテンツ */}
       <main className="flex-1 flex items-start justify-center px-4 pt-12">
