@@ -13,6 +13,8 @@ import {
   deletePost,
   toggleLike,
 } from "@/app/actions/postApi";
+import { validateComment, hasValidationErrors } from "@/lib/validations/comment";
+import { validatePost } from "@/lib/validations/post";
 import type { Post, Comment } from "@/types/post";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,6 +30,8 @@ export default function CommentsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [commentError, setCommentError] = useState("");
+  const [shareError, setShareError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -84,13 +88,17 @@ export default function CommentsPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!content.trim() || content.length > 120) {
-      setError("コメント内容は1文字以上120文字以内で入力してください。");
+
+    const validation_errors = validateComment(content);
+    if (hasValidationErrors(validation_errors)) {
+      setCommentError(validation_errors.content || '');
       return;
     }
+
     if (!auth?.currentUser) return;
 
     setSubmitting(true);
+    setCommentError("");
     setError("");
 
     try {
@@ -167,25 +175,29 @@ export default function CommentsPage() {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const shareContent = (formData.get("content") as string)?.trim();
+    const shareContent = (formData.get("content") as string) ?? "";
 
-    if (!shareContent || shareContent.length > 120) {
-      setError("投稿内容は1文字以上120文字以内で入力してください。");
+    const validation_errors = validatePost(shareContent);
+    if (hasValidationErrors(validation_errors)) {
+      setShareError(validation_errors.content || '');
       return;
     }
+
     if (!auth?.currentUser) return;
+
+    setShareError("");
 
     try {
       const token = await auth.currentUser.getIdToken();
-      const res = await createPost({ content: shareContent }, token);
+      const res = await createPost({ content: shareContent.trim() }, token);
       if (res.data) {
         form.reset();
         router.push("/");
       } else {
-        setError(res.errorMessage || "投稿の作成に失敗しました");
+        setShareError(res.errorMessage || "投稿の作成に失敗しました");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "投稿の作成に失敗しました");
+      setShareError(err instanceof Error ? err.message : "投稿の作成に失敗しました");
     }
   };
 
@@ -219,7 +231,7 @@ export default function CommentsPage() {
           </button>
         </nav>
 
-        <div className="mt-auto">
+        <div>
           <h2 className="flex items-center gap-2 text-white text-lg font-semibold mb-4">
             <Image
               src="/assets/feather.png"
@@ -229,14 +241,21 @@ export default function CommentsPage() {
             />
             シェア
           </h2>
-          <form onSubmit={handleShareSubmit} className="space-y-4" suppressHydrationWarning>
+          <form
+            onSubmit={handleShareSubmit}
+            className="space-y-4"
+            suppressHydrationWarning
+          >
             <textarea
               name="content"
-              maxLength={120}
               placeholder="何をシェアしますか？"
               className="w-full px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               rows={6}
+              onChange={() => { if (shareError) setShareError(""); }}
             />
+            {shareError && (
+              <p className="text-red-400 text-xs">{shareError}</p>
+            )}
             <div className="flex justify-end">
               <button
                 type="submit"
@@ -326,15 +345,25 @@ export default function CommentsPage() {
 
             {/* コメント入力フォーム（最下部） */}
             <form onSubmit={handleSubmit} className="px-6 py-4">
+              {commentError && (
+                <p className="text-red-400 text-xs mb-2">{commentError}</p>
+              )}
               <div className="flex gap-3 items-center">
-                <input
-                  type="text"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  maxLength={120}
-                  placeholder=""
-                  className="flex-1 px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={content}
+                    onChange={(e) => {
+                      setContent(e.target.value);
+                      if (commentError) setCommentError("");
+                    }}
+                    placeholder=""
+                    className="w-full px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <span className={`absolute right-2 bottom-2 text-xs ${content.length > 120 ? "text-red-400" : "text-gray-400"}`}>
+                    {content.length}/120
+                  </span>
+                </div>
                 <button
                   type="submit"
                   disabled={submitting || !content.trim()}

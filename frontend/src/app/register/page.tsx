@@ -4,6 +4,10 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { registerUser } from "@/app/actions/authApi";
+import {
+  validateRegister,
+  hasValidationErrors,
+} from "@/lib/validations/register";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,34 +23,19 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
+    const validation_errors = validateRegister(username, email, password);
+    if (hasValidationErrors(validation_errors)) {
+      const first_error =
+        validation_errors.username ||
+        validation_errors.email ||
+        validation_errors.password ||
+        "";
+      setError(first_error);
+      return;
+    }
+
     setLoading(true);
-
-    // バリデーション
-    if (username.length === 0) {
-      setError("ユーザーネームを入力してください。");
-      setLoading(false);
-      return;
-    }
-
-    if (username.length > 20) {
-      setError("ユーザーネームは20文字以内で入力してください。");
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("パスワードは6文字以上で入力してください。");
-      setLoading(false);
-      return;
-    }
-
-    // メール形式の簡易バリデーション
-    const email_regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email_regex.test(email)) {
-      setError("有効なメールアドレスを入力してください。");
-      setLoading(false);
-      return;
-    }
 
     try {
       // Firebase設定の確認
@@ -158,15 +147,17 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            suppressHydrationWarning
+          >
             <div>
               <input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required
-                maxLength={20}
                 className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="ユーザーネームを入力"
               />
@@ -175,10 +166,8 @@ export default function RegisterPage() {
             <div>
               <input
                 id="email"
-                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
                 className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="メールアドレスを入力"
               />
@@ -190,8 +179,6 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
                 className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="パスワードを入力"
               />

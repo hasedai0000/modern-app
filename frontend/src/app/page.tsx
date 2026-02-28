@@ -11,6 +11,7 @@ import {
   deletePost,
   toggleLike,
 } from "@/app/actions/postApi";
+import { validatePost, hasValidationErrors } from "@/lib/validations/post";
 import type { Post } from "@/types/post";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,6 +22,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [postError, setPostError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const router = useRouter();
@@ -74,19 +76,16 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // フロントエンドでのバリデーション
-    const trimmedContent = content.trim();
-    if (!trimmedContent) {
-      setError("投稿内容を入力してください。");
+    const validation_errors = validatePost(content);
+    if (hasValidationErrors(validation_errors)) {
+      setPostError(validation_errors.content || '');
       return;
     }
 
-    if (trimmedContent.length > 120) {
-      setError("投稿内容は120文字以内で入力してください。");
-      return;
-    }
+    const trimmedContent = content.trim();
 
     setSubmitting(true);
+    setPostError("");
     setError("");
     setSuccessMessage("");
 
@@ -194,7 +193,7 @@ export default function Home() {
           </button>
         </nav>
 
-        <div className="mt-auto">
+        <div>
           <h2 className="flex items-center gap-2 text-white text-lg font-semibold mb-4">
             <Image
               src="/assets/feather.png"
@@ -209,15 +208,16 @@ export default function Home() {
               value={content}
               onChange={(e) => {
                 setContent(e.target.value);
-                // エラーメッセージをクリア
-                if (error) setError("");
+                if (postError) setPostError("");
               }}
-              maxLength={120}
               placeholder="何をシェアしますか？"
               className="w-full px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               rows={6}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <span className={`text-xs ${content.length > 120 ? "text-red-400" : "text-gray-400"}`}>
+                {content.length}/120
+              </span>
               <button
                 type="submit"
                 disabled={submitting || !content.trim()}
@@ -226,27 +226,34 @@ export default function Home() {
                 {submitting ? "投稿中..." : "シェアする"}
               </button>
             </div>
+            {postError && (
+              <p className="text-red-400 text-xs mt-1">{postError}</p>
+            )}
           </form>
         </div>
       </aside>
+
+      {/* トースト通知（固定表示） */}
+      {(error || successMessage) && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 items-center">
+          {error && (
+            <div className="px-5 py-3 bg-red-100 border border-red-400 text-red-700 rounded shadow-lg text-sm whitespace-nowrap">
+              {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="px-5 py-3 bg-green-100 border border-green-400 text-green-700 rounded shadow-lg text-sm whitespace-nowrap">
+              {successMessage}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* メインコンテンツ */}
       <main className="flex-1 flex flex-col">
         <h2 className="text-white text-2xl font-bold px-6 py-4 border-b border-l border-white-600">
           ホーム
         </h2>
-
-        {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mx-6 mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-            {successMessage}
-          </div>
-        )}
 
         {loading ? (
           <div className="text-white px-6 py-4">読み込み中...</div>
