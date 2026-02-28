@@ -165,7 +165,8 @@ export default function CommentsPage() {
 
   const handleShareSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const shareContent = (formData.get("content") as string)?.trim();
 
     if (!shareContent || shareContent.length > 120) {
@@ -178,7 +179,7 @@ export default function CommentsPage() {
       const token = await auth.currentUser.getIdToken();
       const res = await createPost({ content: shareContent }, token);
       if (res.data) {
-        e.currentTarget.reset();
+        form.reset();
         router.push("/");
       } else {
         setError(res.errorMessage || "投稿の作成に失敗しました");
@@ -228,7 +229,7 @@ export default function CommentsPage() {
             />
             シェア
           </h2>
-          <form onSubmit={handleShareSubmit} className="space-y-4">
+          <form onSubmit={handleShareSubmit} className="space-y-4" suppressHydrationWarning>
             <textarea
               name="content"
               maxLength={120}
@@ -324,10 +325,7 @@ export default function CommentsPage() {
             )}
 
             {/* コメント入力フォーム（最下部） */}
-            <form
-              onSubmit={handleSubmit}
-              className="px-6 py-4 border-t border-gray-600"
-            >
+            <form onSubmit={handleSubmit} className="px-6 py-4">
               <div className="flex gap-3 items-center">
                 <input
                   type="text"

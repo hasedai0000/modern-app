@@ -131,7 +131,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#2C3E50] flex flex-col">
+    <div className="min-h-screen bg-[#1B2631] flex flex-col">
       {/* ヘッダー */}
       <header className="flex justify-between items-center p-6">
         <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
@@ -146,7 +146,7 @@ export default function RegisterPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 flex items-center justify-center px-4">
+      <main className="flex-1 flex items-start justify-center px-4 pt-12">
         <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
           <h2 className="text-2xl font-bold text-center text-black mb-6">
             新規登録
@@ -158,7 +158,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
             <div>
               <input
                 id="username"

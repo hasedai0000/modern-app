@@ -122,8 +122,8 @@ export default function LoginPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 flex items-center justify-center px-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm">
+      <main className="flex-1 flex items-start justify-center px-4 pt-12">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
           {authChecking ? (
             <div className="text-center py-8 text-gray-600">
               確認中...
@@ -138,7 +138,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-3" suppressHydrationWarning>
                 <input
                   id="email"
                   type="email"
