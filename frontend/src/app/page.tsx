@@ -63,7 +63,7 @@ export default function Home() {
       }
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "投稿の読み込みに失敗しました"
+        err instanceof Error ? err.message : "投稿の読み込みに失敗しました",
       );
       console.error("Load posts error:", err);
     } finally {
@@ -130,9 +130,7 @@ export default function Home() {
         setError(res.errorMessage || "投稿の削除に失敗しました");
       }
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "投稿の削除に失敗しました"
-      );
+      setError(err instanceof Error ? err.message : "投稿の削除に失敗しました");
     }
   };
 
@@ -169,7 +167,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#2C3E50] flex">
       {/* 左サイドバー */}
-      <aside className="w-64 bg-[#34495E] p-6 flex flex-col">
+      <aside className="w-1/5 p-3 py-6 flex flex-col">
         <div className="mb-8">
           <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
         </div>
@@ -198,7 +196,12 @@ export default function Home() {
 
         <div className="mt-auto">
           <h2 className="flex items-center gap-2 text-white text-lg font-semibold mb-4">
-            <Image src="/assets/feather.png" alt="シェア" width={20} height={20} />
+            <Image
+              src="/assets/feather.png"
+              alt="シェア"
+              width={20}
+              height={20}
+            />
             シェア
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -212,92 +215,92 @@ export default function Home() {
               maxLength={120}
               placeholder="何をシェアしますか？"
               className="w-full px-4 py-2 border border-white rounded-md bg-transparent text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-              rows={4}
+              rows={6}
             />
-            <div className="text-right text-sm text-gray-400">
-              {content.length}/120
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={submitting || !content.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-full border-4 border-t-gray-500 border-l-gray-500 border-r-gray-900 border-b-gray-900 shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? "投稿中..." : "シェアする"}
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={submitting || !content.trim()}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-md shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? "投稿中..." : "シェアする"}
-            </button>
           </form>
         </div>
       </aside>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 p-8">
-        <h2 className="text-white text-2xl font-bold mb-4">ホーム</h2>
-        <div className="border-t border-gray-600 mb-6"></div>
+      <main className="flex-1 flex flex-col">
+        <h2 className="text-white text-2xl font-bold px-6 py-4 border-b border-l border-white-600">
+          ホーム
+        </h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mx-6 mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          <div className="mx-6 mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
             {successMessage}
           </div>
         )}
 
         {loading ? (
-          <div className="text-white">読み込み中...</div>
+          <div className="text-white px-6 py-4">読み込み中...</div>
         ) : posts.length === 0 ? (
-          <div className="text-white">投稿がありません</div>
+          <div className="text-white px-6 py-4">投稿がありません</div>
         ) : (
-          <div className="space-y-4">
+          <div>
             {posts.map((post) => (
               <div
                 key={post.id}
-                className="bg-[#34495E] border border-white rounded-lg p-4"
+                className="px-6 py-4 border-b px-6 py-4 border-b border-l border-white-600 border-white-600"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-white font-semibold">
-                      {post.user_name}
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-white font-semibold">
+                    {post.user_name}
+                  </span>
+                  <button
+                    onClick={() => handleLike(post.id)}
+                    className="flex items-center gap-1 hover:opacity-80"
+                  >
+                    <Image
+                      src="/assets/heart.png"
+                      alt="いいね"
+                      width={20}
+                      height={20}
+                    />
+                    <span className="text-white text-sm">
+                      {post.likes_count}
                     </span>
+                  </button>
+                  {currentUserId === post.user_id && (
                     <button
-                      onClick={() => handleLike(post.id)}
-                      className="flex items-center gap-1 text-pink-500 hover:opacity-80"
+                      onClick={() => handleDelete(post.id)}
+                      className="hover:opacity-80"
                     >
                       <Image
-                        src="/assets/heart.png"
-                        alt="いいね"
+                        src="/assets/cross.png"
+                        alt="削除"
                         width={20}
                         height={20}
                       />
-                      <span className="text-white">{post.likes_count}</span>
                     </button>
-                    {currentUserId === post.user_id && (
-                      <button
-                        onClick={() => handleDelete(post.id)}
-                        className="text-white hover:opacity-80"
-                      >
-                        <Image
-                          src="/assets/cross.png"
-                          alt="削除"
-                          width={20}
-                          height={20}
-                        />
-                      </button>
-                    )}
-                    <Link
-                      href={`/posts/${post.id}/comments`}
-                      className="text-white hover:opacity-80"
-                    >
-                      <Image
-                        src="/assets/detail.png"
-                        alt="詳細"
-                        width={20}
-                        height={20}
-                      />
-                    </Link>
-                  </div>
+                  )}
+                  <Link
+                    href={`/posts/${post.id}/comments`}
+                    className="hover:opacity-80"
+                  >
+                    <Image
+                      src="/assets/detail.png"
+                      alt="詳細"
+                      width={20}
+                      height={20}
+                    />
+                  </Link>
                 </div>
                 <p className="text-white">{post.content}</p>
               </div>

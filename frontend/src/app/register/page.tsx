@@ -57,7 +57,7 @@ export default function RegisterPage() {
         setError(errorMessage);
         setLoading(false);
         console.error(
-          "Firebase auth is not initialized. Check environment variables."
+          "Firebase auth is not initialized. Check environment variables.",
         );
         return;
       }
@@ -66,7 +66,7 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
 
       // プロフィールにユーザーネームを設定
@@ -82,7 +82,7 @@ export default function RegisterPage() {
           user_name: username,
           email: email,
         },
-        token
+        token,
       );
 
       if (res.data) {
@@ -113,7 +113,10 @@ export default function RegisterPage() {
         } else if (code === "auth/configuration-not-found") {
           errorMessage =
             "Firebase設定が見つかりません。環境変数を確認してください。";
-        } else if ("message" in err && typeof (err as { message: string }).message === "string") {
+        } else if (
+          "message" in err &&
+          typeof (err as { message: string }).message === "string"
+        ) {
           errorMessage = (err as { message: string }).message;
         }
       } else if (err instanceof Error) {
@@ -145,7 +148,9 @@ export default function RegisterPage() {
       {/* メインコンテンツ */}
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-          <h2 className="text-2xl font-bold text-black mb-6">新規登録</h2>
+          <h2 className="text-2xl font-bold text-center text-black mb-6">
+            新規登録
+          </h2>
 
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -155,12 +160,6 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                ユーザーネーム
-              </label>
               <input
                 id="username"
                 type="text"
@@ -168,36 +167,24 @@ export default function RegisterPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 maxLength={20}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="ユーザーネームを入力"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                メールアドレス
-              </label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="メールアドレスを入力"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                パスワード
-              </label>
               <input
                 id="password"
                 type="password"
@@ -205,18 +192,20 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="パスワードを入力"
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-md shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "登録中..." : "新規登録"}
-            </button>
+            <div className="flex justify-center pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-8 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-full border-4 border-t-gray-500 border-l-gray-500 border-r-gray-900 border-b-gray-900 shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "登録中..." : "新規登録"}
+              </button>
+            </div>
           </form>
         </div>
       </main>

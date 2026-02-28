@@ -107,7 +107,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#2C3E50] flex flex-col">
+    <div className="min-h-screen bg-[#1B2631] flex flex-col">
       {/* ヘッダー */}
       <header className="flex justify-between items-center p-6">
         <Image src="/assets/logo.png" alt="SHARE" width={120} height={40} />
@@ -123,67 +123,52 @@ export default function LoginPage() {
 
       {/* メインコンテンツ */}
       <main className="flex-1 flex items-center justify-center px-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm">
           {authChecking ? (
             <div className="text-center py-8 text-gray-600">
               確認中...
             </div>
           ) : (
             <>
-          <h2 className="text-2xl font-bold text-black mb-6">ログイン</h2>
+              <h2 className="text-xl font-bold text-black text-center mb-6">ログイン</h2>
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+                  {error}
+                </div>
+              )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                メールアドレス
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="メールアドレスを入力"
-              />
-            </div>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                  placeholder="メールアドレス"
+                />
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                パスワード
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="パスワードを入力"
-              />
-            </div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                  placeholder="パスワード"
+                />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-md shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'ログイン中...' : 'ログイン'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-gray-600">
-            アカウントをお持ちでない方は
-            <Link href="/register" className="text-purple-600 hover:underline font-medium ml-1">
-              新規登録
-            </Link>
-          </p>
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-8 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-full border-4 border-t-gray-500 border-l-gray-500 border-r-gray-900 border-b-gray-900 shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'ログイン中...' : 'ログイン'}
+                  </button>
+                </div>
+              </form>
             </>
           )}
         </div>
