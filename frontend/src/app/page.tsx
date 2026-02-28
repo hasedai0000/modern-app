@@ -13,8 +13,7 @@ import {
 } from "@/app/actions/postApi";
 import type { Post } from "@/types/post";
 import Sidebar from "@/components/Sidebar";
-import Image from "next/image";
-import Link from "next/link";
+import PostItem from "@/components/PostItem";
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -170,55 +169,14 @@ export default function Home() {
         ) : (
           <div>
             {posts.map((post) => (
-              <div
+              <PostItem
                 key={post.id}
-                className="px-6 py-4 border-b px-6 py-4 border-b border-l border-white-600 border-white-600"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-white font-semibold">
-                    {post.user_name}
-                  </span>
-                  <button
-                    onClick={() => handleLike(post.id)}
-                    className="flex items-center gap-1 hover:opacity-80"
-                  >
-                    <Image
-                      src="/assets/heart.png"
-                      alt="いいね"
-                      width={20}
-                      height={20}
-                    />
-                    <span className="text-white text-sm">
-                      {post.likes_count}
-                    </span>
-                  </button>
-                  {currentUserId === post.user_id && (
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      className="hover:opacity-80"
-                    >
-                      <Image
-                        src="/assets/cross.png"
-                        alt="削除"
-                        width={20}
-                        height={20}
-                      />
-                    </button>
-                  )}
-                  <Link
-                    href={`/posts/${post.id}/comments`}
-                    className="hover:opacity-80"
-                  >
-                    <Image
-                      src="/assets/detail.png"
-                      alt="詳細"
-                      width={20}
-                      height={20}
-                    />
-                  </Link>
-                </div>
-                <p className="text-white">{post.content}</p>
-              </div>
+                post={post}
+                currentUserId={currentUserId}
+                onLike={handleLike}
+                onDelete={handleDelete}
+                showDetailLink
+              />
             ))}
           </div>
         )}

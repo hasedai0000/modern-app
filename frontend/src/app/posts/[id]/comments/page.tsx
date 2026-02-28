@@ -16,7 +16,7 @@ import {
 import { validateComment, hasValidationErrors } from "@/lib/validations/comment";
 import type { Post, Comment } from "@/types/post";
 import Sidebar from "@/components/Sidebar";
-import Image from "next/image";
+import PostItem from "@/components/PostItem";
 
 export default function CommentsPage() {
   const params = useParams();
@@ -202,39 +202,12 @@ export default function CommentsPage() {
         ) : post ? (
           <>
             {/* 投稿表示 */}
-            <div className="px-6 py-4 border-b border-l border-white-600">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-white font-semibold">
-                  {post.user_name}
-                </span>
-                <button
-                  onClick={() => handleLike(post.id)}
-                  className="flex items-center gap-1 hover:opacity-80"
-                >
-                  <Image
-                    src="/assets/heart.png"
-                    alt="いいね"
-                    width={20}
-                    height={20}
-                  />
-                  <span className="text-white text-sm">{post.likes_count}</span>
-                </button>
-                {currentUserId === post.user_id && (
-                  <button
-                    onClick={() => handleDelete(post.id)}
-                    className="hover:opacity-80"
-                  >
-                    <Image
-                      src="/assets/cross.png"
-                      alt="削除"
-                      width={20}
-                      height={20}
-                    />
-                  </button>
-                )}
-              </div>
-              <p className="text-white">{post.content}</p>
-            </div>
+            <PostItem
+              post={post}
+              currentUserId={currentUserId}
+              onLike={handleLike}
+              onDelete={handleDelete}
+            />
 
             {/* コメントセクション区切り */}
             <div className="px-6 py-3 border-b border-l border-white-600 text-center">
