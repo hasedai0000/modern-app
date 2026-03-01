@@ -141,7 +141,7 @@ cd frontend
 
 # 環境変数ファイルを作成
 # （Firebase を使う場合は Firebase Console から値を取得して設定）
-cp .env.local.example .env.local   # またはファイルを手動作成
+cp .env.example .env.local   # またはファイルを手動作成
 
 # 依存関係のインストール
 npm install
@@ -210,7 +210,7 @@ cd frontend && npm run dev
 - **GET /api/posts/{id}/comments**: 指定された投稿のコメント一覧を取得
 - **POST /api/posts/{id}/comments**: 指定された投稿にコメントを追加（認証必須、120 文字以内）
 
-詳細な API 仕様については `.cursor/rules/api_endpoints.mdc` を参照してください。
+詳細な API 仕様については上記テーブルを参照してください。
 
 ## Firebase Authentication の設定
 
@@ -390,18 +390,6 @@ php artisan db:seed
 docker compose exec php php artisan test
 ```
 
-## 設計書
-
-プロジェクトの詳細な設計情報は `.cursor/rules/` ディレクトリ配下にあります：
-
-- **`twitter-sns-rules.mdc`**: プロジェクト仕様（機能要件、UI/UX 要件、セキュリティ要件等）
-- **`api_endpoints.mdc`**: API エンドポイント設計書
-- **`controller_design.mdc`**: Controller クラス設計書
-- **`database_design.mdc`**: データベース設計書
-- **`model_design.mdc`**: Model クラス設計書
-
-コーディングルールはプロジェクトルートの `.cursorrules` を参照してください。
-
 ## ファイル構成
 
 ```text
@@ -455,7 +443,6 @@ modern-app/
 │       └── types/          # 型定義
 ├── docs/                   # ドキュメント
 ├── docker-compose.yaml     # Docker Compose設定
-├── .cursorrules            # コーディングルール
 └── README.md               # このファイル
 ```
 
@@ -510,49 +497,49 @@ erDiagram
 
 #### users テーブル
 
-| カラム名 | データ型 | NULL | キー | 説明 |
-| --- | --- | --- | --- | --- |
-| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
-| firebase_uid | varchar(255) | YES | UNIQUE | Firebase Authentication の UID |
-| user_name | varchar(255) | NO | - | ユーザー名（最大20文字） |
-| email | varchar(255) | NO | UNIQUE | メールアドレス |
-| password | varchar(255) | NO | - | パスワード（ハッシュ化） |
-| created_at | timestamp | YES | - | 作成日時 |
-| updated_at | timestamp | YES | - | 更新日時 |
+| カラム名     | データ型        | NULL | キー        | 説明                           |
+| ------------ | --------------- | ---- | ----------- | ------------------------------ |
+| id           | bigint unsigned | NO   | PRIMARY KEY | 自動採番                       |
+| firebase_uid | varchar(255)    | YES  | UNIQUE      | Firebase Authentication の UID |
+| user_name    | varchar(255)    | NO   | -           | ユーザー名（最大20文字）       |
+| email        | varchar(255)    | NO   | UNIQUE      | メールアドレス                 |
+| password     | varchar(255)    | NO   | -           | パスワード（ハッシュ化）       |
+| created_at   | timestamp       | YES  | -           | 作成日時                       |
+| updated_at   | timestamp       | YES  | -           | 更新日時                       |
 
 #### posts テーブル
 
-| カラム名 | データ型 | NULL | キー | 説明 |
-| --- | --- | --- | --- | --- |
-| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
-| user_id | bigint unsigned | NO | FOREIGN KEY | 投稿者（users.id、CASCADE削除） |
-| content | text | NO | - | 投稿内容（最大120文字） |
-| created_at | timestamp | YES | - | 作成日時 |
-| updated_at | timestamp | YES | - | 更新日時 |
+| カラム名   | データ型        | NULL | キー        | 説明                            |
+| ---------- | --------------- | ---- | ----------- | ------------------------------- |
+| id         | bigint unsigned | NO   | PRIMARY KEY | 自動採番                        |
+| user_id    | bigint unsigned | NO   | FOREIGN KEY | 投稿者（users.id、CASCADE削除） |
+| content    | text            | NO   | -           | 投稿内容（最大120文字）         |
+| created_at | timestamp       | YES  | -           | 作成日時                        |
+| updated_at | timestamp       | YES  | -           | 更新日時                        |
 
 #### likes テーブル
 
-| カラム名 | データ型 | NULL | キー | 説明 |
-| --- | --- | --- | --- | --- |
-| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
-| user_id | bigint unsigned | NO | FOREIGN KEY | いいねしたユーザー（users.id、CASCADE削除） |
-| post_id | bigint unsigned | NO | FOREIGN KEY | いいねされた投稿（posts.id、CASCADE削除） |
-| created_at | timestamp | NO | - | 作成日時 |
+| カラム名   | データ型        | NULL | キー        | 説明                                        |
+| ---------- | --------------- | ---- | ----------- | ------------------------------------------- |
+| id         | bigint unsigned | NO   | PRIMARY KEY | 自動採番                                    |
+| user_id    | bigint unsigned | NO   | FOREIGN KEY | いいねしたユーザー（users.id、CASCADE削除） |
+| post_id    | bigint unsigned | NO   | FOREIGN KEY | いいねされた投稿（posts.id、CASCADE削除）   |
+| created_at | timestamp       | NO   | -           | 作成日時                                    |
 
 > `user_id` + `post_id` の組み合わせに**複合ユニーク制約**あり（同一ユーザーが同一投稿に重複していいね不可）
 
 #### comments テーブル
 
-| カラム名 | データ型 | NULL | キー | 説明 |
-| --- | --- | --- | --- | --- |
-| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
-| user_id | bigint unsigned | NO | FOREIGN KEY | コメントしたユーザー（users.id、CASCADE削除） |
-| post_id | bigint unsigned | NO | FOREIGN KEY | コメント先の投稿（posts.id、CASCADE削除） |
-| content | text | NO | - | コメント内容（最大120文字） |
-| created_at | timestamp | YES | - | 作成日時 |
-| updated_at | timestamp | YES | - | 更新日時 |
+| カラム名   | データ型        | NULL | キー        | 説明                                          |
+| ---------- | --------------- | ---- | ----------- | --------------------------------------------- |
+| id         | bigint unsigned | NO   | PRIMARY KEY | 自動採番                                      |
+| user_id    | bigint unsigned | NO   | FOREIGN KEY | コメントしたユーザー（users.id、CASCADE削除） |
+| post_id    | bigint unsigned | NO   | FOREIGN KEY | コメント先の投稿（posts.id、CASCADE削除）     |
+| content    | text            | NO   | -           | コメント内容（最大120文字）                   |
+| created_at | timestamp       | YES  | -           | 作成日時                                      |
+| updated_at | timestamp       | YES  | -           | 更新日時                                      |
 
-詳細なデータベース設計については `.cursor/rules/database_design.mdc` を参照してください。
+詳細なデータベース設計については上記テーブル設計を参照してください。
 
 ## コーディングルール
 
@@ -565,7 +552,7 @@ erDiagram
 - **メソッド**: キャメルケース（例: `getPostById()`）
 - **変数**: スネークケース（例: `$user_name`, `$post_id`）
 
-詳細なコーディングルールについては `.cursorrules` を参照してください。
+詳細なコーディングルールについては開発チームの規約を参照してください。
 
 ## トラブルシューティング
 
