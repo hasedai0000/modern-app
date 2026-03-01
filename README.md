@@ -12,7 +12,7 @@
 
 - **投稿機能**
   - 投稿の作成・削除
-  - 投稿一覧の表示（ユーザー名、投稿内容、投稿日時、いいね数、コメント数）
+  - 投稿一覧の表示（ユーザー名、投稿内容、いいね数）
   - 投稿詳細の表示
   - ページネーション対応
 
@@ -22,12 +22,11 @@
 
 - **コメント機能**
   - 投稿へのコメント追加
-  - コメント一覧の表示（ユーザー名、コメント内容、コメント日時）
+  - コメント一覧の表示（ユーザー名、コメント内容）
 
 - **その他**
   - レスポンシブデザイン対応
   - バリデーション機能
-  - CI/CD (GitHub Actions)
 
 ## 使用技術
 
@@ -39,9 +38,9 @@
 
 ### バックエンド
 
-- **PHP** 7.3|8.0
+- **PHP** ^7.3|^8.0
 - **Laravel** 8.x
-- **MySQL** 8.0.26
+- **MySQL** 8.0
 
 ### 認証
 
@@ -50,7 +49,7 @@
 ### 開発・運用環境
 
 - **Docker** & **Docker Compose**
-- **Nginx** 1.21.1
+- **Nginx**
 - **PHPMyAdmin** (データベース管理)
 - **MailHog** (メール送信テスト)
 
@@ -74,10 +73,10 @@
 
 ```bash
 # SSHでクローンする場合
-git clone git@github.com:hasedai0000/furima-app.git
+git clone git@github.com:<your-username>/modern-app.git
 
 # HTTPSでクローンする場合
-git clone https://github.com/hasedai0000/furima-app.git
+git clone https://github.com/<your-username>/modern-app.git
 
 cd modern-app
 ```
@@ -103,42 +102,86 @@ cp .env.example .env
 
 # アプリケーションキーの生成
 php artisan key:generate
-
-# 画像保存のためシンボリックリンクを作成する
-php artisan storage:link
-
-# データベースマイグレーションとシーダーの実行
-php artisan migrate:fresh --seed
-
 ```
 
-#### 3.1 データベース接続情報
+#### 3.1 .env の設定
+
+コピーした `.env` に以下を設定してください：
 
 ```bash
-
-# .envにDB接続情報の設定
+# DB接続情報（Dockerコンテナ間通信用）
+DB_HOST=mysql
 DB_DATABASE=laravel_db
 DB_USERNAME=laravel_user
 DB_PASSWORD=laravel_pass
-DB_HOST=mysql #（コンテナ間通信）
 
-# データベースマイグレーションとシーダーの実行
-php artisan migrate:fresh --seed
+# Firebase設定（本番環境 / Firebase を使う場合）
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_JWKS_JSON=         # Firebase の公開鍵 JSON（本番環境で必要）
+FIREBASE_AUTH_DISABLED=false
 
+# ローカル開発で Firebase を使わない場合
+# FIREBASE_AUTH_DISABLED=true
+# FIREBASE_JWKS_JSON は不要
 ```
 
-### 4. 動作確認
+#### 3.2 データベースマイグレーションの実行
+
+```bash
+# PHPコンテナ内で実行
+php artisan migrate:fresh --seed
+```
+
+### 4. フロントエンドのセットアップ
+
+PHPコンテナから出て、ホストマシンで以下を実行してください：
+
+```bash
+cd frontend
+
+# 環境変数ファイルを作成
+# （Firebase を使う場合は Firebase Console から値を取得して設定）
+cp .env.local.example .env.local   # またはファイルを手動作成
+
+# 依存関係のインストール
+npm install
+
+# 開発サーバーの起動
+npm run dev
+```
+
+`frontend/.env.local` に設定する内容：
+
+```bash
+# Firebase 設定（Firebase を使う場合）
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key-here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+
+# API ベース URL
+NEXT_PUBLIC_API_BASE_URL=/api
+```
+
+### 5. 動作確認
 
 ブラウザで以下の URL にアクセスして、アプリケーションが正常に動作することを確認してください：
 
-- **アプリケーション**: <http://localhost>
+- **フロントエンド (Next.js)**: <http://localhost:3000>
+- **バックエンド API**: <http://localhost/api>
 - **PHPMyAdmin**: <http://localhost:8080>
 - **MailHog**: <http://localhost:8025>
 
-### 5. 2 回目以降の起動
+### 6. 2 回目以降の起動
 
 ```bash
+# Dockerコンテナの起動
 docker compose up -d
+
+# フロントエンド開発サーバーの起動
+cd frontend && npm run dev
 ```
 
 ## API エンドポイント
@@ -167,7 +210,7 @@ docker compose up -d
 - **GET /api/posts/{id}/comments**: 指定された投稿のコメント一覧を取得
 - **POST /api/posts/{id}/comments**: 指定された投稿にコメントを追加（認証必須、120 文字以内）
 
-詳細な API 仕様については `.cursor/api_endpoints.mdc` を参照してください。
+詳細な API 仕様については `.cursor/rules/api_endpoints.mdc` を参照してください。
 
 ## Firebase Authentication の設定
 
@@ -194,33 +237,97 @@ docker compose up -d
    - 表示された設定情報をコピー
 
 4. **Next.js アプリに環境変数を設定**
-   - `frontend/.env.local` ファイルを作成
-   - 以下の環境変数を設定：
+   - `frontend/.env.local` ファイルを作成して Firebase の設定値を記入
+   - （「[フロントエンドのセットアップ](#4-フロントエンドのセットアップ)」参照）
 
-```bash
-# frontend/.env.local
-NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key-here
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
-NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
-
-# API ベース URL（デフォルトは /api）
-NEXT_PUBLIC_API_BASE_URL=/api
-```
-
-5. **Next.js 開発サーバーの再起動**
-   - 環境変数を変更した場合は、開発サーバーを再起動してください
-
-```bash
-cd frontend
-npm run dev
-```
-
-6. **Laravel 側の Firebase トークン検証**
-   - Laravel 側では `firebase.auth` ミドルウェアが実装済み
+5. **Laravel 側の Firebase トークン検証**
+   - Laravel 側では `FirebaseAuthenticate` ミドルウェアが実装済み
+   - `backend/src/.env` の `FIREBASE_PROJECT_ID` にプロジェクト ID を設定
    - Firebase トークンが自動的に検証されます
+
+## ローカル開発での動作確認（Firebase 認証スキップ）
+
+Firebase プロジェクトを用意しなくても、`FIREBASE_AUTH_DISABLED=true` を設定することで API の動作確認ができます。
+
+> **注意**: この設定はローカル開発専用です。本番環境では必ず `FIREBASE_AUTH_DISABLED=false` にしてください。
+
+### 設定手順
+
+`backend/src/.env` を以下のように設定します：
+
+```bash
+# Firebase 認証を無効化（ローカル開発専用）
+FIREBASE_AUTH_DISABLED=true
+
+# FIREBASE_JWKS_JSON の設定は不要
+```
+
+設定変更後、Laravel のキャッシュをクリアしてください：
+
+```bash
+docker compose exec php php artisan config:clear
+```
+
+### 使い方
+
+#### 1. テストユーザーの登録
+
+`firebase_uid` には任意の文字列を設定できます：
+
+```bash
+curl -X POST http://localhost/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firebase_uid": "dev_uid_001",
+    "user_name": "devuser",
+    "email": "dev@example.com"
+  }'
+```
+
+#### 2. 認証が必要なエンドポイントへのアクセス
+
+`X-Debug-Firebase-Uid` ヘッダーに登録済みの `firebase_uid` を指定します：
+
+```bash
+# 投稿を作成する
+curl -X POST http://localhost/api/posts \
+  -H "X-Debug-Firebase-Uid: dev_uid_001" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "テスト投稿"}'
+
+# いいねをする
+curl -X POST http://localhost/api/posts/1/like \
+  -H "X-Debug-Firebase-Uid: dev_uid_001"
+
+# コメントを追加する
+curl -X POST http://localhost/api/posts/1/comments \
+  -H "X-Debug-Firebase-Uid: dev_uid_001" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "テストコメント"}'
+
+# 投稿を削除する（自分の投稿のみ）
+curl -X DELETE http://localhost/api/posts/1 \
+  -H "X-Debug-Firebase-Uid: dev_uid_001"
+```
+
+#### 3. 認証なし（公開エンドポイント）
+
+投稿一覧などはヘッダーなしでアクセスできます：
+
+```bash
+curl http://localhost/api/posts
+```
+
+### 動作の仕組み
+
+| 状況                                                          | 動作                                   |
+| ------------------------------------------------------------- | -------------------------------------- |
+| `FIREBASE_AUTH_DISABLED=false`（本番）                        | Firebase JWT を検証する通常フロー      |
+| `FIREBASE_AUTH_DISABLED=true` + ヘッダーなし                  | 認証なしで通過（公開エンドポイント用） |
+| `FIREBASE_AUTH_DISABLED=true` + `X-Debug-Firebase-Uid: {uid}` | 該当ユーザーでログイン状態にする       |
+| `FIREBASE_AUTH_DISABLED=true` + 存在しない UID                | 401 を返す（安全）                     |
+
+---
 
 ## 開発時の操作
 
@@ -265,9 +372,7 @@ docker compose exec mysql bash
 ### MySQL への直接アクセス
 
 ```bash
-# MySQLコンテナ内でMySQLにログイン
-docker compose exec mysql mysql -u laravel_user -p laravel_db
-# パスワード: laravel_pass
+docker compose exec mysql mysql -u laravel_user -plaravel_pass laravel_db
 ```
 
 ### 開発用コマンド
@@ -285,42 +390,17 @@ php artisan db:seed
 docker compose exec php php artisan test
 ```
 
-## CI/CD
-
-このプロジェクトでは GitHub Actions を使用して CI/CD パイプラインを構築しています。
-
-### 自動テスト
-
-プッシュ・プルリクエスト時に以下が自動実行されます：
-
-- **テスト実行**: PHPUnit を使用したユニットテスト・フィーチャーテスト
-
-### マトリックステスト
-
-複数の PHP バージョンでテストを実行：
-
-- PHP 8.0
-
-### ワークフロー
-
-CI 設定ファイル: `.github/workflows/ci.yml`
-
-```bash
-# ローカルで同じテストを実行する場合
-cd backend/src
-composer test      # PHPUnit テストを実行
-```
-
 ## 設計書
 
-プロジェクトの詳細な設計情報は `.cursor/` ディレクトリ配下にあります：
+プロジェクトの詳細な設計情報は `.cursor/rules/` ディレクトリ配下にあります：
 
-- **`.cursorrules`**: コーディングルール（命名規則、ディレクトリ構造）
 - **`twitter-sns-rules.mdc`**: プロジェクト仕様（機能要件、UI/UX 要件、セキュリティ要件等）
 - **`api_endpoints.mdc`**: API エンドポイント設計書
 - **`controller_design.mdc`**: Controller クラス設計書
 - **`database_design.mdc`**: データベース設計書
 - **`model_design.mdc`**: Model クラス設計書
+
+コーディングルールはプロジェクトルートの `.cursorrules` を参照してください。
 
 ## ファイル構成
 
@@ -330,53 +410,149 @@ modern-app/
 │   ├── nginx/
 │   │   └── default.conf    # Nginx設定
 │   ├── php/
-│   │   ├── Dockerfile      # PHP設定
+│   │   ├── Dockerfile      # PHP Dockerfileq
 │   │   └── php.ini         # PHP設定
 │   └── mysql/
 │       └── my.cnf          # MySQL設定
-├── backend/                 # バックエンド
+├── backend/                # バックエンド
 │   └── src/                # Laravelアプリケーション
-│       ├── app/            # アプリケーションロジック
-│       │   ├── Application/    # アプリケーション層
-│       │   │   └── Services/   # ユースケース実装
+│       ├── app/
 │       │   ├── Domain/         # ドメイン層
-│       │   │   └── */         # ドメイン名
-│       │   │       ├── Entities/      # エンティティ
-│       │   │       ├── ValueObjects/   # 値オブジェクト
-│       │   │       ├── Repositories/   # データ取得用インターフェース
-│       │   │       └── Services/       # ドメイン固有のロジック
+│       │   │   ├── Comment/
+│       │   │   │   ├── Entities/
+│       │   │   │   └── Repositories/
+│       │   │   ├── Like/
+│       │   │   │   ├── Entities/
+│       │   │   │   └── Repositories/
+│       │   │   ├── Post/
+│       │   │   │   ├── Entities/
+│       │   │   │   └── Repositories/
+│       │   │   └── User/
+│       │   │       ├── Entities/
+│       │   │       └── Repositories/
 │       │   ├── Http/           # プレゼンテーション層
-│       │   │   ├── Controllers/        # HTTPリクエスト処理
-│       │   │   └── Requests/           # 入力検証
+│       │   │   ├── Controllers/
+│       │   │   ├── Middleware/
+│       │   │   └── Requests/
 │       │   ├── Infrastructure/ # インフラストラクチャ層
-│       │   │   └── Repositories/       # データアクセス実装
+│       │   │   └── Repositories/
 │       │   └── Models/         # Eloquentモデル
-│       │       └── Repositories/       # データアクセス実装
 │       ├── database/           # マイグレーション・シーダー
-│       ├── public/             # 公開ファイル
-│       ├── resources/          # ビュー・CSS・JS
-│       └── routes/             # ルート定義
-├── .cursor/                # プロジェクト仕様・設計書
-│   ├── .cursorrules        # コーディングルール
-│   ├── twitter-sns-rules.mdc      # プロジェクト仕様
-│   ├── api_endpoints.mdc          # APIエンドポイント設計書
-│   ├── controller_design.mdc     # Controllerクラス設計書
-│   ├── database_design.mdc        # データベース設計書
-│   └── model_design.mdc           # Modelクラス設計書
+│       ├── routes/             # ルート定義
+│       └── tests/              # テストコード
+├── frontend/               # フロントエンド（Next.js）
+│   └── src/
+│       ├── app/            # App Router
+│       │   ├── actions/    # APIクライアント
+│       │   ├── login/      # ログインページ
+│       │   ├── register/   # 新規登録ページ
+│       │   └── posts/
+│       │       └── [id]/
+│       │           └── comments/  # コメントページ
+│       ├── components/     # 共通コンポーネント
+│       ├── hooks/          # カスタムフック
+│       ├── lib/            # ユーティリティ・Firebase設定
+│       └── types/          # 型定義
+├── docs/                   # ドキュメント
 ├── docker-compose.yaml     # Docker Compose設定
-└── README.md              # このファイル
+├── .cursorrules            # コーディングルール
+└── README.md               # このファイル
 ```
 
 ## データベース設計
 
-### テーブル構成
+### ER 図
 
-- **users**: ユーザー情報（user_name, email, password 等）
-- **posts**: 投稿情報（user_id, content 等）
-- **likes**: いいね情報（user_id, post_id 等）
-- **comments**: コメント情報（user_id, post_id, content 等）
+```mermaid
+erDiagram
+    users {
+        bigint id PK
+        varchar firebase_uid UK "Firebase UID（NULL許可）"
+        varchar user_name "最大20文字"
+        varchar email UK
+        varchar password
+        timestamp created_at
+        timestamp updated_at
+    }
 
-詳細なデータベース設計については `.cursor/database_design.mdc` を参照してください。
+    posts {
+        bigint id PK
+        bigint user_id FK
+        text content "最大120文字"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    likes {
+        bigint id PK
+        bigint user_id FK
+        bigint post_id FK
+        timestamp created_at
+    }
+
+    comments {
+        bigint id PK
+        bigint user_id FK
+        bigint post_id FK
+        text content "最大120文字"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    users ||--o{ posts : "投稿する"
+    users ||--o{ likes : "いいねする"
+    users ||--o{ comments : "コメントする"
+    posts ||--o{ likes : "いいねされる"
+    posts ||--o{ comments : "コメントされる"
+```
+
+### テーブル設計
+
+#### users テーブル
+
+| カラム名 | データ型 | NULL | キー | 説明 |
+| --- | --- | --- | --- | --- |
+| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
+| firebase_uid | varchar(255) | YES | UNIQUE | Firebase Authentication の UID |
+| user_name | varchar(255) | NO | - | ユーザー名（最大20文字） |
+| email | varchar(255) | NO | UNIQUE | メールアドレス |
+| password | varchar(255) | NO | - | パスワード（ハッシュ化） |
+| created_at | timestamp | YES | - | 作成日時 |
+| updated_at | timestamp | YES | - | 更新日時 |
+
+#### posts テーブル
+
+| カラム名 | データ型 | NULL | キー | 説明 |
+| --- | --- | --- | --- | --- |
+| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
+| user_id | bigint unsigned | NO | FOREIGN KEY | 投稿者（users.id、CASCADE削除） |
+| content | text | NO | - | 投稿内容（最大120文字） |
+| created_at | timestamp | YES | - | 作成日時 |
+| updated_at | timestamp | YES | - | 更新日時 |
+
+#### likes テーブル
+
+| カラム名 | データ型 | NULL | キー | 説明 |
+| --- | --- | --- | --- | --- |
+| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
+| user_id | bigint unsigned | NO | FOREIGN KEY | いいねしたユーザー（users.id、CASCADE削除） |
+| post_id | bigint unsigned | NO | FOREIGN KEY | いいねされた投稿（posts.id、CASCADE削除） |
+| created_at | timestamp | NO | - | 作成日時 |
+
+> `user_id` + `post_id` の組み合わせに**複合ユニーク制約**あり（同一ユーザーが同一投稿に重複していいね不可）
+
+#### comments テーブル
+
+| カラム名 | データ型 | NULL | キー | 説明 |
+| --- | --- | --- | --- | --- |
+| id | bigint unsigned | NO | PRIMARY KEY | 自動採番 |
+| user_id | bigint unsigned | NO | FOREIGN KEY | コメントしたユーザー（users.id、CASCADE削除） |
+| post_id | bigint unsigned | NO | FOREIGN KEY | コメント先の投稿（posts.id、CASCADE削除） |
+| content | text | NO | - | コメント内容（最大120文字） |
+| created_at | timestamp | YES | - | 作成日時 |
+| updated_at | timestamp | YES | - | 更新日時 |
+
+詳細なデータベース設計については `.cursor/rules/database_design.mdc` を参照してください。
 
 ## コーディングルール
 
@@ -389,13 +565,13 @@ modern-app/
 - **メソッド**: キャメルケース（例: `getPostById()`）
 - **変数**: スネークケース（例: `$user_name`, `$post_id`）
 
-詳細なコーディングルールについては `.cursor/.cursorrules` を参照してください。
+詳細なコーディングルールについては `.cursorrules` を参照してください。
 
 ## トラブルシューティング
 
 ### ポート競合の場合
 
-ポート 80 が使用中の場合、`docker-compose.yml`を編集：
+ポート 80 が使用中の場合、`docker-compose.yaml` を編集：
 
 ```yaml
 services:
@@ -430,6 +606,10 @@ DB::connection()->getPdo();
 
 ### Firebase Authentication エラー
 
+#### Firebase を使わずにローカルで動作確認したい場合
+
+「[ローカル開発での動作確認（Firebase 認証スキップ）](#ローカル開発での動作確認firebase-認証スキップ)」セクションを参照してください。`FIREBASE_AUTH_DISABLED=true` を設定することで、Firebase プロジェクトなしで API の動作確認ができます。
+
 #### `auth/configuration-not-found` エラーが発生する場合
 
 このエラーは、Firebase Console で Authentication（メール/パスワード）が有効化されていない場合に発生します。
@@ -449,4 +629,4 @@ DB::connection()->getPdo();
 **確認方法：**
 
 - Firebase Console の「Authentication」→「Sign-in method」で「メール/パスワード」が「有効」になっていることを確認
-- ブラウザのコンソールで「✅ Firebase 初期化成功」と「✅ Firebase Authentication 初期化成功」が表示されることを確認
+- ブラウザのコンソールで Firebase 初期化成功のログが表示されることを確認
