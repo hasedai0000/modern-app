@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { verifyUserAfterLogin } from "@/app/actions/authApi";
 import {
   getPosts,
   createPost,
@@ -14,41 +12,14 @@ import {
 import type { Post } from "@/types/post";
 import Sidebar from "@/components/Sidebar";
 import PostItem from "@/components/PostItem";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    if (!auth) {
-      router.push("/login");
-      return;
-    }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      // ユーザー情報を取得してcurrentUserIdを設定
-      try {
-        const token = await user.getIdToken();
-        const res = await verifyUserAfterLogin(token);
-        setCurrentUserId(res.data?.id ?? null);
-      } catch (err) {
-        console.error("User fetch error:", err);
-      }
-
-      loadPosts();
-    });
-
-    return () => unsubscribe();
-  }, [router]);
 
   const loadPosts = async () => {
     try {
@@ -68,6 +39,8 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  const { current_user_id: currentUserId, handleLogout } = useAuth(loadPosts);
 
   const handleShareSubmit = async (shareContent: string) => {
     if (!auth?.currentUser) {
@@ -118,20 +91,6 @@ export default function Home() {
       }
     } catch (err: unknown) {
       setError("いいねの処理に失敗しました");
-    }
-  };
-
-  const handleLogout = async () => {
-    if (!auth) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      await signOut(auth);
-      router.push("/login");
-    } catch (err) {
-      console.error("Logout error:", err);
     }
   };
 

@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
 import { useRouter, useParams } from "next/navigation";
-import { verifyUserAfterLogin } from "@/app/actions/authApi";
 import {
   getPost,
   getComments,
@@ -17,6 +15,7 @@ import { validateComment, hasValidationErrors } from "@/lib/validations/comment"
 import type { Post, Comment } from "@/types/post";
 import Sidebar from "@/components/Sidebar";
 import PostItem from "@/components/PostItem";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CommentsPage() {
   const params = useParams();
@@ -30,33 +29,6 @@ export default function CommentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [commentError, setCommentError] = useState("");
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!auth) {
-      router.push("/login");
-      return;
-    }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      try {
-        const token = await user.getIdToken();
-        const res = await verifyUserAfterLogin(token);
-        setCurrentUserId(res.data?.id ?? null);
-      } catch (err) {
-        console.error("User fetch error:", err);
-      }
-
-      loadData();
-    });
-
-    return () => unsubscribe();
-  }, [router, postId]);
 
   const loadData = async () => {
     try {
@@ -83,6 +55,8 @@ export default function CommentsPage() {
       setLoading(false);
     }
   };
+
+  const { current_user_id: currentUserId, handleLogout } = useAuth(loadData);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -153,19 +127,6 @@ export default function CommentsPage() {
       setError(
         err instanceof Error ? err.message : "いいねの処理に失敗しました",
       );
-    }
-  };
-
-  const handleLogout = async () => {
-    if (!auth) {
-      router.push("/login");
-      return;
-    }
-    try {
-      await signOut(auth);
-      router.push("/login");
-    } catch (err) {
-      console.error("Logout error:", err);
     }
   };
 
